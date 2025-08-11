@@ -4,14 +4,14 @@ from functions import do_login, fill_only
 app = Flask(__name__)
 
 
-@app.route("/auto-login", methods=["POST"])
+@app.post("/auto-login")
 def auto_login_route():
     """
-    POST JSON:
+    Body JSON:
     {
-      "url": "https://example.com/login",
-      "username": "myuser",
-      "password": "mypass",
+      "url": "...",
+      "username": "...",
+      "password": "...",
       "user_field_id": "username",
       "pass_field_id": "password",
       "login_button_selector": "button[type=submit]",
@@ -35,17 +35,17 @@ def auto_login_route():
         wait_time=int(data.get("wait_time", 15)),
         headless=bool(data.get("headless", True)),
     )
-    return jsonify(res), (200 if res["ok"] else 500)
+    return jsonify(res), (200 if res.get("ok") else 500)
 
 
-@app.route("/auto-fill", methods=["POST"])
+@app.post("/auto-fill")
 def auto_fill_route():
     """
-    POST JSON:
+    Body JSON:
     {
-      "url": "https://example.com/login",
-      "username": "myuser",
-      "password": "mypass",
+      "url": "...",
+      "username": "...",
+      "password": "...",
       "user_field_id": "username",
       "pass_field_id": "password",
       "wait_time": 15,
@@ -67,7 +67,7 @@ def auto_fill_route():
         wait_time=int(data.get("wait_time", 15)),
         headless=bool(data.get("headless", True)),
     )
-    return jsonify(res), (200 if res["ok"] else 500)
+    return jsonify(res), (200 if res.get("ok") else 500)
 
 
 @app.get("/health")
@@ -76,4 +76,5 @@ def health():
 
 
 if __name__ == "__main__":
+    # Local dev
     app.run(host="0.0.0.0", port=8080, debug=True)
