@@ -1,18 +1,20 @@
 import os
 import time
-from typing import Optional
-
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
+# Change this path for your system:
+# Windows example:
+DRIVER_PATH = r"C:\tools\chromedriver\chromedriver.exe"
+# Linux/Jenkins example:
+# DRIVER_PATH = "/usr/bin/chromedriver"
+
 def start_driver(headless: bool = True) -> webdriver.Chrome:
-    """
-    Start Chrome using Selenium Manager (no chromedriver path needed).
-    Requires Chrome/Chromium installed. In containers we set CHROME_BIN.
-    """
+    """Start Chrome using an explicit ChromeDriver path."""
     options = webdriver.ChromeOptions()
     if headless:
         options.add_argument("--headless=new")
@@ -21,24 +23,14 @@ def start_driver(headless: bool = True) -> webdriver.Chrome:
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1280,800")
 
-    # Use Chromium/Chrome binary if provided (e.g., /usr/bin/chromium in Docker)
-    chrome_bin = os.getenv("CHROME_BIN")
-    if chrome_bin and os.path.isfile(chrome_bin):
-        options.binary_location = chrome_bin
+    if not os.path.isfile(DRIVER_PATH):
+        raise FileNotFoundError(f"ChromeDriver not found at {DRIVER_PATH}")
 
-    # Important: don’t pass Service/executable_path → Selenium Manager resolves driver
-    return webdriver.Chrome(options=options)
+    service = Service(executable_path=DRIVER_PATH)
+    return webdriver.Chrome(service=service, options=options)
 
 
-def fill_only(
-    url: str,
-    username: str,
-    password: str,
-    user_field_id: str,
-    pass_field_id: str,
-    wait_time: int = 15,
-    headless: bool = True,
-) -> dict:
+def fill_only(url, username, password, user_field_id, pass_field_id, wait_time=15, headless=True):
     """Open URL, fill credentials, but do not click login."""
     driver = start_driver(headless=headless)
     driver.set_page_load_timeout(30)
@@ -47,10 +39,12 @@ def fill_only(
         wait = WebDriverWait(driver, wait_time)
 
         user_box = wait.until(EC.presence_of_element_located((By.ID, user_field_id)))
-        user_box.clear(); user_box.send_keys(username)
+        user_box.clear()
+        user_box.send_keys(username)
 
         pass_box = wait.until(EC.presence_of_element_located((By.ID, pass_field_id)))
-        pass_box.clear(); pass_box.send_keys(password)
+        pass_box.clear()
+        pass_box.send_keys(password)
 
         time.sleep(1.5)
         return {"ok": True, "message": "Fields filled, not submitted", "current_url": driver.current_url}
@@ -60,16 +54,7 @@ def fill_only(
         driver.quit()
 
 
-def do_login(
-    url: str,
-    username: str,
-    password: str,
-    user_field_id: str,
-    pass_field_id: str,
-    login_button_selector: str,
-    wait_time: int = 15,
-    headless: bool = True,
-) -> dict:
+def do_login(url, username, password, user_field_id, pass_field_id, login_button_selector, wait_time=15, headless=True):
     """Open URL, fill credentials, click login."""
     driver = start_driver(headless=headless)
     driver.set_page_load_timeout(30)
@@ -78,17 +63,19 @@ def do_login(
         wait = WebDriverWait(driver, wait_time)
 
         user_box = wait.until(EC.presence_of_element_located((By.ID, user_field_id)))
-        user_box.clear(); user_box.send_keys(username)
+        user_box.clear()
+        user_box.send_keys(username)
 
         pass_box = wait.until(EC.presence_of_element_located((By.ID, pass_field_id)))
-        pass_box.clear(); pass_box.send_keys(password)
+        pass_box.clear()
+        pass_box.send_keys(password)
 
         login_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, login_button_selector)))
         login_btn.click()
 
         time.sleep(1.5)
 
-        # Try to capture a visible flash/alert message
+        # Try to grab a message if any
         message = ""
         for sel in ["#flash", ".flash", ".alert", ".notification", "[role='alert']"]:
             try:
