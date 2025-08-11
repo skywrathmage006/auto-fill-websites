@@ -6,7 +6,19 @@ app = Flask(__name__)
 
 @app.route("/auto-login", methods=["POST"])
 def auto_login_route():
-    """Full login flow — fills and clicks submit."""
+    """
+    POST JSON:
+    {
+      "url": "https://example.com/login",
+      "username": "myuser",
+      "password": "mypass",
+      "user_field_id": "username",
+      "pass_field_id": "password",
+      "login_button_selector": "button[type=submit]",
+      "wait_time": 15,
+      "headless": true
+    }
+    """
     data = request.get_json(silent=True) or {}
     required = ["url", "username", "password", "user_field_id", "pass_field_id", "login_button_selector"]
     missing = [k for k in required if not data.get(k)]
@@ -23,13 +35,23 @@ def auto_login_route():
         wait_time=int(data.get("wait_time", 15)),
         headless=bool(data.get("headless", True)),
     )
-    status = 200 if res.get("ok") else 500
-    return jsonify(res), status
+    return jsonify(res), (200 if res["ok"] else 500)
 
 
 @app.route("/auto-fill", methods=["POST"])
 def auto_fill_route():
-    """Only open URL and fill in credentials — no login click."""
+    """
+    POST JSON:
+    {
+      "url": "https://example.com/login",
+      "username": "myuser",
+      "password": "mypass",
+      "user_field_id": "username",
+      "pass_field_id": "password",
+      "wait_time": 15,
+      "headless": true
+    }
+    """
     data = request.get_json(silent=True) or {}
     required = ["url", "username", "password", "user_field_id", "pass_field_id"]
     missing = [k for k in required if not data.get(k)]
@@ -45,8 +67,7 @@ def auto_fill_route():
         wait_time=int(data.get("wait_time", 15)),
         headless=bool(data.get("headless", True)),
     )
-    status = 200 if res.get("ok") else 500
-    return jsonify(res), status
+    return jsonify(res), (200 if res["ok"] else 500)
 
 
 @app.get("/health")
@@ -55,4 +76,4 @@ def health():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True)
